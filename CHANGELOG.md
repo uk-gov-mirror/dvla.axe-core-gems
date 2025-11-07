@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [4.11.0](https://github.com/dequelabs/axe-core-gems/compare/v4.10.3...v4.11.0) (2025-10-16)
+
+
+### Features
+
+* Update axe-core to v4.11.0 ([#452](https://github.com/dequelabs/axe-core-gems/issues/452)) ([8101733](https://github.com/dequelabs/axe-core-gems/commit/810173356753ea544dab57bade456d5758aa9f0d))
+
+
+### Bug Fixes
+
+* allow passing extra options to Selenium::WebDriver ([#431](https://github.com/dequelabs/axe-core-gems/issues/431)) ([720be7c](https://github.com/dequelabs/axe-core-gems/commit/720be7ca2d6119edcb9f1e3b1d64354aafc653bf))
+* Update axe-core to v4.10.3 ([#433](https://github.com/dequelabs/axe-core-gems/issues/433)) ([29253e3](https://github.com/dequelabs/axe-core-gems/commit/29253e39fd5489b290bab981caf74ed6fc0a6972))
+
+## [4.10.2](https://github.com/dequelabs/axe-core-gems/compare/v4.10.1...v4.10.2) (2024-11-08)
+
+## [4.10.3](https://github.com/dequelabs/axe-core-gems/compare/v4.10.1...v4.10.3) (2025-04-11)
+
+### Bug Fixes
+
+* Update axe-core to v4.10.1 ([#412](https://github.com/dequelabs/axe-core-gems/issues/412)) ([53569f6](https://github.com/dequelabs/axe-core-gems/commit/53569f6914d1086eeedfee65128ed1611aab4254))
+* Update axe-core to v4.10.2 ([#419](https://github.com/dequelabs/axe-core-gems/issues/419)) ([7e72b19](https://github.com/dequelabs/axe-core-gems/commit/7e72b194f5b4810fb4ac0622f8711f1a7dafcedb))
+* Update axe-core to v4.10.3 ([#433](https://github.com/dequelabs/axe-core-gems/issues/433)) ([29253e3](https://github.com/dequelabs/axe-core-gems/commit/29253e39fd5489b290bab981caf74ed6fc0a6972))
+
 ## [4.10.1](https://github.com/dequelabs/axe-core-gems/compare/v4.10.0...v4.10.1) (2024-10-07)
 
 ## [4.10.0](https://github.com/dequelabs/axe-core-gems/compare/v4.9.1...v4.10.0) (2024-08-13)
