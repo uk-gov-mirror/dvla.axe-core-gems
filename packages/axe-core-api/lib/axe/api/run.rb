@@ -201,7 +201,7 @@ module Axe
               page.switch_to.window current_window_handle
               frame_stack.each { |frame| page.switch_to.frame frame }
               results.push nil
-            rescue Cuprite::TimeoutError
+            rescue Ferrum::TimeoutError
               page = get_driver page
               page.switch_to_window current_window_handle
               frame_stack.each { |frame| page.switch_to_frame frame }
