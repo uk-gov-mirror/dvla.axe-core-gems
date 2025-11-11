@@ -8,6 +8,7 @@ def get_selenium(page)
   page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(Symbol)
   page
 end
+
 module WebDriverScriptAdapter
   class << self
     attr_accessor :async_results_identifier,
@@ -94,7 +95,25 @@ module WebDriverScriptAdapter
       page = __getobj__
       page = page.driver if page.respond_to?("driver")
       page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
-      page.execute_async_script(script, *args)
+
+      if is_cuprite?(page)
+        page.evaluate(wrap_script(script), *args)
+      else
+        page.execute_async_script(script, *args)
+      end
+    end
+
+    private
+
+    def wrap_script(script, *args)
+      wrapped_script = "(async function() { #{script} })"
+      wrapped_script += ".apply(null, arguments)" unless args.empty?
+      wrapped_script
+    end
+
+    def is_cuprite?(page)
+      page.class.name.include?("Cuprite") ||
+        (page.respond_to?(:evaluate_async) && !page.respond_to?(:execute_async_script))
     end
   end
 

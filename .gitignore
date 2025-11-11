@@ -17,5 +17,4 @@ rdoc
 *.log
 .ruby-version
 bin/
-node_modules/
 tmp/

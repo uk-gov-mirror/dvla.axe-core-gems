@@ -28,12 +28,19 @@ module Axe
 
       def call(page)
         results = audit page
+
         Audit.new to_js, Results.new(results)
       end
 
       def analyze_post_43x(page, lib)
-        user_page_load = (get_selenium page).manage.timeouts.page_load
-        (get_selenium page).manage.timeouts.page_load = 1
+        user_page_load = nil
+        driver = get_driver(page)
+
+        unless is_cuprite?(page)
+          user_page_load = driver.manage.timeouts.page_load
+          driver.manage.timeouts.page_load = 1
+        end
+
         begin
           @original_window = window_handle page
           partial_results = run_partial_recursive(page, @context, lib, true)
@@ -44,22 +51,25 @@ module Axe
             while not partial_res_str.empty? do
               chunk_size = size_limit
               chunk_size = partial_res_str.length if chunk_size > partial_res_str.length
-              chunk = partial_res_str[0..chunk_size-1]
+              chunk = partial_res_str[0..chunk_size - 1]
               partial_res_str = partial_res_str[chunk_size..-1]
               store_chunk page, chunk
             end
-  
+
             Common::Loader.new(page, lib).load_top_level Axe::Configuration.instance.jslib
             begin
               axe_finish_run page
             rescue
               raise StandardError.new "axe.finishRun failed. Please check out https://github.com/dequelabs/axe-core-gems/blob/develop/error-handling.md"
             end
-  
+
           }
         ensure
-          (get_selenium page).manage.timeouts.page_load = user_page_load
+          unless is_cuprite?(page) || user_page_load.nil?
+            (get_driver page).manage.timeouts.page_load = user_page_load
+          end
         end
+
         Audit.new to_js, Results.new(results)
       end
 
@@ -72,52 +82,80 @@ module Axe
           var options = arguments[1] || {};
           #{METHOD_NAME}(context, options).then(res => JSON.parse(JSON.stringify(res))).then(callback);
         JS
+
         page.execute_async_script_fixed script, *js_args
       end
 
       def switch_to_frame_by_handle(page, handle)
-        page = get_selenium page
-        page.switch_to.frame handle
+        page = get_driver page
+
+        if is_cuprite?(page)
+          # Cuprite uses switch_to_frame method directly
+          page.switch_to_frame(handle)
+        else
+          # Selenium uses switch_to.frame
+          page.switch_to.frame handle
+        end
       end
 
       def switch_to_parent_frame(page)
-        page = get_selenium page
-        page.switch_to.parent_frame
+        page = get_driver page
+
+        if is_cuprite?(page)
+          page.switch_to_frame(:parent)
+        else
+          page.switch_to.parent_frame
+        end
       end
 
+      # This method causes a significant performance hit when using Cuprite
+      # due to the way new tabs are handled.
+      # Specifically, this command `driver.switch_to_window new_handle`.
       def within_about_blank_context(page)
-        driver = get_selenium page
+        driver = get_driver page
+        is_cuprite = is_cuprite?(page)
+
         # This is a workaround to maintain Selenium 3 support
         # Likely driver.switch_to.new_window(:tab) should be used instead, should we drop support, as per
         # https://github.com/dequelabs/axe-core-gems/issues/352
 
         before_handles = page.window_handles
         begin
-          driver.execute_script("window.open('about:blank'), '_blank'")
+          script = "window.open('about:blank', '_blank')"
+          is_cuprite ? driver.execute(script) : driver.execute_script(script)
         rescue
           raise StandardError.new "switchToWindow failed. Are you using updated browser drivers? Please check out https://github.com/dequelabs/axe-core-gems/blob/develop/error-handling.md"
         end
-        after_handles = page.window_handles
-        new_handles = after_handles.difference(before_handles)
-        if new_handles.length != 1
-          raise StandardError.new "Unable to determine window handle"
+
+        new_handle = page.window_handles.difference(before_handles).first
+        raise StandardError.new("Unable to determine window handle") if new_handle.nil?
+
+        if is_cuprite
+          driver.switch_to_window new_handle
+
+          ret = yield page
+
+          driver.close_window new_handle
+          driver.switch_to_window @original_window
+        else
+          driver.switch_to.window new_handle
+          driver.get "about:blank"
+
+          ret = yield page
+
+          driver.switch_to.window new_handle
+          driver.close
+          driver.switch_to.window @original_window
         end
-        new_handle = new_handles[0]
-        driver.switch_to.window new_handle
-        driver.get "about:blank"
-
-        ret = yield page
-
-        driver.switch_to.window new_handle
-        driver.close
-        driver.switch_to.window @original_window
 
         ret
       end
+
       def window_handle(page)
-        page = get_selenium page
+        page = get_driver page
 
         return page.window_handle if page.respond_to?("window_handle")
+
         page.current_window_handle
       end
 
@@ -139,6 +177,7 @@ module Axe
           end
 
           res = axe_run_partial page, context
+
           if res.nil? || res.key?("errorMessage")
             if top_level
               throw res unless res.nil?
@@ -158,16 +197,21 @@ module Axe
               res = run_partial_recursive page, frame_context, lib, false, [*frame_stack, frame]
               results += res
             rescue Selenium::WebDriver::Error::TimeoutError
-              page = get_selenium page
+              page = get_driver page
               page.switch_to.window current_window_handle
-              frame_stack.each {|frame| page.switch_to.frame frame }
+              frame_stack.each { |frame| page.switch_to.frame frame }
+              results.push nil
+            rescue Cuprite::TimeoutError
+              page = get_driver page
+              page.switch_to_window current_window_handle
+              frame_stack.each { |frame| page.switch_to_frame frame }
               results.push nil
             end
           end
-
         ensure
           switch_to_parent_frame page if not top_level
         end
+
         return results
       end
 
@@ -177,13 +221,16 @@ module Axe
           window.partialResults ??= '';
           window.partialResults += chunk;
         JS
+
         page.execute_script_fixed script, chunk
       end
+
       def axe_finish_run(page)
         script = <<-JS
           const partialResults = JSON.parse(window.partialResults || '[]');
           return axe.finishRun(partialResults);
         JS
+
         page.execute_script_fixed script
       end
 
@@ -192,6 +239,7 @@ module Axe
           const frameSelector = arguments[0];
           return axe.utils.shadowSelect(frameSelector);
         JS
+
         page.execute_script_fixed script, frame_selector
       end
 
@@ -214,6 +262,7 @@ module Axe
             cb(ret);
           }
         JS
+
         page.execute_async_script_fixed script, context, @options
       end
 
@@ -232,13 +281,20 @@ module Axe
             };
           }
         JS
+
         page.execute_script_fixed script, @context
       end
 
-      def get_selenium(page)
+      def get_driver(page)
         page = page.driver if page.respond_to?("driver")
         page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
         page
+      end
+
+      def is_cuprite?(page)
+        driver = get_driver(page)
+        driver.class.name.include?("Cuprite") ||
+          (driver.respond_to?(:evaluate) && driver.respond_to?(:execute) && !driver.respond_to?(:execute_script))
       end
 
       def js_args
