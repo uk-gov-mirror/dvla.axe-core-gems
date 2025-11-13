@@ -90,10 +90,8 @@ module Axe
         page = get_driver page
 
         if is_cuprite?(page)
-          # Cuprite uses switch_to_frame method directly
           page.switch_to_frame(handle)
         else
-          # Selenium uses switch_to.frame
           page.switch_to.frame handle
         end
       end
@@ -226,12 +224,22 @@ module Axe
       end
 
       def axe_finish_run(page)
-        script = <<-JS
-          const partialResults = JSON.parse(window.partialResults || '[]');
-          return axe.finishRun(partialResults);
-        JS
+        if is_cuprite?(page)
+          script = <<-JS
+            const cb = arguments[arguments.length - 1];
+            const partialResults = JSON.parse(window.partialResults || '[]');
+            axe.finishRun(partialResults).then(result => cb(result)).catch(err => cb({errorMessage: err.message}));
+          JS
 
-        page.execute_script_fixed script
+          page.execute_async_script_fixed script
+        else
+          script = <<-JS
+            const partialResults = JSON.parse(window.partialResults || '[]');
+            return axe.finishRun(partialResults);
+          JS
+
+          page.execute_script_fixed script
+        end
       end
 
       def axe_shadow_select(page, frame_selector)
@@ -293,8 +301,7 @@ module Axe
 
       def is_cuprite?(page)
         driver = get_driver(page)
-        driver.class.name.include?("Cuprite") ||
-          (driver.respond_to?(:evaluate) && driver.respond_to?(:execute) && !driver.respond_to?(:execute_script))
+        driver.class.name.include?("Cuprite")
       end
 
       def js_args

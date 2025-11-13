@@ -34,24 +34,19 @@ module WebDriverScriptAdapter
       page = page.driver if page.respond_to?("driver")
       page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
 
-      if is_cuprite?(page)
-        page.evaluate(wrap_script(script, *args), *args)
-      else
-        page.execute_script(script, *args)
-      end
+      is_cuprite?(page) ? page.evaluate_func(wrap(script, args), *args) : page.execute_script(script, *args)
     end
 
     private
 
-    def is_cuprite?(page)
-      page.class.name.include?("Cuprite") ||
-        (page.respond_to?(:execute) && page.respond_to?(:evaluate) && !page.respond_to?(:execute_script))
+    def wrap(script, args)
+      args = args.each_with_index.map { |_arg, index| "arg_#{index}" }.join(", ")
+
+      "(function(#{args}) { #{script} })"
     end
 
-    def wrap_script(script, *args)
-      wrappped_script = "(function() { #{script} })"
-      wrappped_script += ".apply(null, arguments)" unless args.empty?
-      wrappped_script
+    def is_cuprite?(page)
+      page.class.name.include?("Cuprite")
     end
   end
 
