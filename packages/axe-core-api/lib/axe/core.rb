@@ -15,8 +15,6 @@ module Axe
     end
 
     def call(callable)
-      start = Time.now
-
       if use_run_partial
         callable.analyze_post_43x @page, self
       else

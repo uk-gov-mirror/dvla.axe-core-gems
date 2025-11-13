@@ -34,9 +34,10 @@ module Axe
 
       def analyze_post_43x(page, lib)
         user_page_load = nil
-        driver = get_driver(page)
 
         unless is_cuprite?(page)
+          driver = get_driver(page)
+
           user_page_load = driver.manage.timeouts.page_load
           driver.manage.timeouts.page_load = 1
         end
@@ -89,21 +90,13 @@ module Axe
       def switch_to_frame_by_handle(page, handle)
         page = get_driver page
 
-        if is_cuprite?(page)
-          page.switch_to_frame(handle)
-        else
-          page.switch_to.frame handle
-        end
+        is_cuprite?(page) ? page.switch_to_frame(handle) : page.switch_to.frame(handle)
       end
 
       def switch_to_parent_frame(page)
         page = get_driver page
 
-        if is_cuprite?(page)
-          page.switch_to_frame(:parent)
-        else
-          page.switch_to.parent_frame
-        end
+        is_cuprite?(page) ? page.switch_to_frame(:parent) : page.switch_to.parent_frame
       end
 
       # This method causes a significant performance hit when using Cuprite
