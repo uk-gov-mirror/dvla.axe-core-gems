@@ -213,26 +213,18 @@ module Axe
           window.partialResults += chunk;
         JS
 
-        page.execute_script_fixed script, chunk
+        page.execute_script_fixed(script, chunk)
       end
 
       def axe_finish_run(page)
-        if is_cuprite?(page)
-          script = <<-JS
-            const cb = arguments[arguments.length - 1];
-            const partialResults = JSON.parse(window.partialResults || '[]');
-            axe.finishRun(partialResults).then(result => cb(result)).catch(err => cb({errorMessage: err.message}));
-          JS
+        script = <<-JS
+          const cb = arguments[arguments.length - 1];
+          const partialResults = JSON.parse(window.partialResults || '[]');
+          
+          axe.finishRun(partialResults).then(result => cb(JSON.stringify(result))).catch(() => cb(null));
+        JS
 
-          page.execute_async_script_fixed script
-        else
-          script = <<-JS
-            const partialResults = JSON.parse(window.partialResults || '[]');
-            return axe.finishRun(partialResults);
-          JS
-
-          page.execute_script_fixed script
-        end
+        JSON.parse(page.execute_async_script_fixed(script))
       end
 
       def axe_shadow_select(page, frame_selector)
@@ -241,7 +233,7 @@ module Axe
           return axe.utils.shadowSelect(frameSelector);
         JS
 
-        page.execute_script_fixed script, frame_selector
+        page.execute_script_fixed(script, frame_selector)
       end
 
       def axe_run_partial(page, context)
@@ -249,22 +241,19 @@ module Axe
           const context = arguments[0];
           const options = arguments[1];
           const cb = arguments[arguments.length - 1];
-          try {
-            const ret = window.axe.runPartial(context, options).then(res => JSON.parse(JSON.stringify(res)));
-            cb(ret);
-          } catch (err) {
-            const ret = {
-              violations: [],
-              passes: [],
-              url: '',
-              timestamp: new Date().toString(),
-              errorMessage: err.message
-            };
-            cb(ret);
-          }
+
+          axe.runPartial(context, options)
+             .then(res => { cb(JSON.stringify(res)) })
+             .catch(err => cb(JSON.stringify({
+               violations: [],
+               passes: [],
+               url: '',
+               timestamp: new Date().toString(),
+               errorMessage: err.message
+             })));
         JS
 
-        page.execute_async_script_fixed script, context, @options
+        JSON.parse(page.execute_async_script_fixed(script, context, @options))
       end
 
       def get_frame_context_script(page)
@@ -283,7 +272,7 @@ module Axe
           }
         JS
 
-        page.execute_script_fixed script, @context
+        page.execute_script_fixed(script, @context)
       end
 
       def get_driver(page)
