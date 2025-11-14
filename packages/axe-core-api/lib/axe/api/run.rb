@@ -29,7 +29,7 @@ module Axe
       def call(page)
         results = audit page
 
-        Audit.new to_js, Results.new(results)
+        Audit.new(to_js, Results.new(results))
       end
 
       def analyze_post_43x(page, lib)
@@ -220,11 +220,12 @@ module Axe
         script = <<-JS
           const cb = arguments[arguments.length - 1];
           const partialResults = JSON.parse(window.partialResults || '[]');
-          
+
           axe.finishRun(partialResults).then(result => cb(JSON.stringify(result))).catch(() => cb(null));
         JS
-
         JSON.parse(page.execute_async_script_fixed(script))
+      rescue JSON::ParserError, TypeError
+        nil
       end
 
       def axe_shadow_select(page, frame_selector)
@@ -254,6 +255,8 @@ module Axe
         JS
 
         JSON.parse(page.execute_async_script_fixed(script, context, @options))
+      rescue JSON::ParserError, TypeError
+        nil
       end
 
       def get_frame_context_script(page)

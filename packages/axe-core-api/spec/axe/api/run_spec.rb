@@ -76,7 +76,7 @@ module Axe::API
       end
 
       it "should parse the results" do
-        expect(Results).to receive(:new).with("violations" => []).and_return results
+        expect(Results).to receive(:new).with({ "violations" => [] }).and_return results
         expect(Audit).to receive(:new).with(instance_of(String), results)
         subject.call(page)
       end
@@ -89,14 +89,15 @@ module Axe::API
 
     describe "#run_partial_recursive" do
       let(:context) { spy("context") }
+      let(:lib) { "{}" }
+
       before :each do
         allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter"})
         subject.instance_variable_set :@context, context
       end
-      let(:lib) { "{}" }
 
       it "should throw errorMessage if top level axe.runPartial errors" do
-        page = spy("page", execute_async_script_fixed: { "errorMessage" => "some error" }) 
+        page = spy("page", execute_async_script_fixed: '{ "errorMessage": "some error" }')
 
         expect {
           subject.send :run_partial_recursive, page, context, lib, true
@@ -119,7 +120,6 @@ module Axe::API
         page = spy("page", execute_async_script_fixed: { "errorMessage" => "some error" }) 
         expect(subject.send :run_partial_recursive, page, context, lib, false).to eq [nil]
       end
-
     end
   end
 end
