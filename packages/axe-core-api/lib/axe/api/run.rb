@@ -28,7 +28,6 @@ module Axe
 
       def call(page)
         results = audit page
-
         Audit.new(to_js, Results.new(results))
       end
 
@@ -52,7 +51,7 @@ module Axe
             while not partial_res_str.empty? do
               chunk_size = size_limit
               chunk_size = partial_res_str.length if chunk_size > partial_res_str.length
-              chunk = partial_res_str[0..chunk_size - 1]
+              chunk = partial_res_str[0..chunk_size-1]
               partial_res_str = partial_res_str[chunk_size..-1]
               store_chunk page, chunk
             end
@@ -63,12 +62,9 @@ module Axe
             rescue
               raise StandardError.new "axe.finishRun failed. Please check out https://github.com/dequelabs/axe-core-gems/blob/develop/error-handling.md"
             end
-
           }
         ensure
-          unless is_cuprite?(page) || user_page_load.nil?
-            (get_driver page).manage.timeouts.page_load = user_page_load
-          end
+          (get_driver page).manage.timeouts.page_load = user_page_load unless user_page_load.nil?
         end
 
         Audit.new to_js, Results.new(results)
@@ -84,7 +80,7 @@ module Axe
           #{METHOD_NAME}(context, options).then(res => JSON.parse(JSON.stringify(res))).then(callback);
         JS
 
-        page.execute_async_script_fixed script, *js_args
+        page.execute_async_script_fixed(script, *js_args)
       end
 
       def switch_to_frame_by_handle(page, handle)
@@ -99,9 +95,6 @@ module Axe
         is_cuprite?(page) ? page.switch_to_frame(:parent) : page.switch_to.parent_frame
       end
 
-      # This method causes a significant performance hit when using Cuprite
-      # due to the way new tabs are handled.
-      # Specifically, this command `driver.switch_to_window new_handle`.
       def within_about_blank_context(page)
         driver = get_driver page
         is_cuprite = is_cuprite?(page)
@@ -217,15 +210,28 @@ module Axe
       end
 
       def axe_finish_run(page)
+        is_cuprite?(page) ? axe_finish_run_cuprite(page) : axe_finish_run_selenium(page)
+      end
+
+      def axe_finish_run_cuprite(page)
         script = <<-JS
           const cb = arguments[arguments.length - 1];
           const partialResults = JSON.parse(window.partialResults || '[]');
 
           axe.finishRun(partialResults).then(result => cb(JSON.stringify(result))).catch(() => cb(null));
         JS
+
         JSON.parse(page.execute_async_script_fixed(script))
       rescue JSON::ParserError, TypeError
         nil
+      end
+
+      def axe_finish_run_selenium(page)
+        script = <<-JS
+          const partialResults = JSON.parse(window.partialResults || '[]');
+          return axe.finishRun(partialResults);
+        JS
+        page.execute_script_fixed script
       end
 
       def axe_shadow_select(page, frame_selector)
@@ -238,6 +244,10 @@ module Axe
       end
 
       def axe_run_partial(page, context)
+        is_cuprite?(page) ? axe_run_partial_cuprite(page, context) : axe_run_partial_selenium(page, context)
+      end
+
+      def axe_run_partial_cuprite(page, context)
         script = <<-JS
           const context = arguments[0];
           const options = arguments[1];
@@ -257,6 +267,28 @@ module Axe
         JSON.parse(page.execute_async_script_fixed(script, context, @options))
       rescue JSON::ParserError, TypeError
         nil
+      end
+
+      def axe_run_partial_selenium(page, context)
+        script = <<-JS
+          const context = arguments[0];
+          const options = arguments[1];
+          const cb = arguments[arguments.length - 1];
+          try {
+            const ret = window.axe.runPartial(context, options).then(res => JSON.parse(JSON.stringify(res)));
+            cb(ret);
+          } catch (err) {
+            const ret = {
+              violations: [],
+              passes: [],
+              url: '',
+              timestamp: new Date().toString(),
+              errorMessage: err.message
+            };
+            cb(ret);
+          }
+        JS
+        page.execute_async_script_fixed script, context, @options
       end
 
       def get_frame_context_script(page)
