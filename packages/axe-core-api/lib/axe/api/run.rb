@@ -45,9 +45,11 @@ module Axe
           @original_window = window_handle page
           partial_results = run_partial_recursive(page, @context, lib, true)
           throw partial_results if partial_results.respond_to?("key?") and partial_results.key?("errorMessage")
+
           results = within_about_blank_context(page) { |page|
             partial_res_str = partial_results.to_json
             size_limit = 10_000_000
+
             while not partial_res_str.empty? do
               chunk_size = size_limit
               chunk_size = partial_res_str.length if chunk_size > partial_res_str.length
@@ -84,15 +86,23 @@ module Axe
       end
 
       def switch_to_frame_by_handle(page, handle)
-        page = get_driver page
+        return frame(handle) if is_cuprite?(page)
 
-        is_cuprite?(page) ? page.switch_to_frame(handle) : page.switch_to.frame(handle)
+        page = get_driver(page)
+        page.switch_to.frame(handle)
+      end
+
+      def frame(handle)
+        return handle.frame if handle.respond_to?(:frame)
+
+        handle
       end
 
       def switch_to_parent_frame(page)
-        page = get_driver page
+        return page.switch_to_frame(:parent) if is_cuprite?(page)
 
-        is_cuprite?(page) ? page.switch_to_frame(:parent) : page.switch_to.parent_frame
+        page = get_driver page
+        page.switch_to.parent_frame
       end
 
       def within_about_blank_context(page)
@@ -138,9 +148,11 @@ module Axe
       def window_handle(page)
         page = get_driver page
 
-        return page.window_handle if page.respond_to?("window_handle")
+        return page.window_handle if page.respond_to?(:window_handle)
+        return page.current_window_handle if page.respond_to?(:current_window_handle)
+        return page.id if page.respond_to?(:id)
 
-        page.current_window_handle
+        raise StandardError.new "Unable to determine window handle"
       end
 
       def run_partial_recursive(page, context, lib, top_level = false, frame_stack = [])
@@ -148,19 +160,20 @@ module Axe
           current_window_handle = window_handle page
           if not top_level
             begin
+              # Injects the axe-core library into the frame context
               Common::Loader.new(page, lib).load_top_level Axe::Configuration.instance.jslib
             rescue
               return [nil]
             end
           end
 
-          frame_contexts = get_frame_context_script page
+          frame_contexts = get_frame_context_script(page)
           if frame_contexts.respond_to?("key?") and frame_contexts.key?("errorMessage")
             throw frame_contexts if top_level
             return [nil]
           end
 
-          res = axe_run_partial page, context
+          res = axe_run_partial(page, context)
 
           if res.nil? || res.key?("errorMessage")
             if top_level
@@ -176,24 +189,30 @@ module Axe
             begin
               frame_selector = frame_context["frameSelector"]
               frame_context = frame_context["frameContext"]
-              frame = axe_shadow_select page, frame_selector
-              switch_to_frame_by_handle page, frame
-              res = run_partial_recursive page, frame_context, lib, false, [*frame_stack, frame]
-              results += res
+              frame_handle = axe_shadow_select(page, frame_selector)
+
+              if is_cuprite?(page)
+                frame = frame(frame_handle)
+                res = run_partial_recursive(frame, frame_context, lib, false, [*frame_stack, frame])
+                results += res
+              else
+                switch_to_frame_by_handle(page, frame_handle)
+                res = run_partial_recursive(page, frame_context, lib, false, [*frame_stack, frame_handle])
+                results += res
+              end
             rescue Selenium::WebDriver::Error::TimeoutError
+              # Selenium approach: need to restore frame context by replaying frame_stack
               page = get_driver page
               page.switch_to.window current_window_handle
               frame_stack.each { |frame| page.switch_to.frame frame }
               results.push nil
             rescue Ferrum::TimeoutError
-              page = get_driver page
-              page.switch_to_window current_window_handle
-              frame_stack.each { |frame| page.switch_to_frame frame }
+              # Cuprite approach: frame is a separate object, no context restoration needed
               results.push nil
             end
           end
         ensure
-          switch_to_parent_frame page if not top_level
+          switch_to_parent_frame(page) if not top_level and not is_cuprite?(page)
         end
 
         return results
@@ -264,7 +283,11 @@ module Axe
              })));
         JS
 
-        JSON.parse(page.execute_async_script_fixed(script, context, @options))
+
+        return JSON.parse(page.execute_async_script_fixed(script, context, @options)) if page.respond_to?(:execute_async_script_fixed)
+        return JSON.parse(page.evaluate_async(script, 1, context, @options)) if page.respond_to?(:evaluate_async)
+
+        raise StandardError.new "The page object does not support async script execution"
       rescue JSON::ParserError, TypeError
         nil
       end
@@ -307,7 +330,10 @@ module Axe
           }
         JS
 
-        page.execute_script_fixed(script, @context)
+        return page.execute_script_fixed(script, @context) if page.respond_to?(:execute_script_fixed)
+        return page.evaluate_func(wrap(script, @context), @context) if page.respond_to?(:evaluate_func)
+
+        raise StandardError.new "The page object does not support script execution"
       end
 
       def get_driver(page)
@@ -317,8 +343,10 @@ module Axe
       end
 
       def is_cuprite?(page)
+        return @is_cuprite if defined?(@is_cuprite)
+
         driver = get_driver(page)
-        driver.class.name.include?("Cuprite")
+        @is_cuprite = driver.respond_to?(:evaluate_func) && driver.respond_to?(:evaluate_async)
       end
 
       def js_args
@@ -329,6 +357,12 @@ module Axe
       def to_js
         str_args = (js_args + ["callback"]).join(", ")
         "#{METHOD_NAME}(#{str_args});"
+      end
+
+      def wrap(script, *args)
+        args = args.each_with_index.map { |_arg, index| "arg_#{index}" }.join(", ")
+
+        "(function(#{args}) { #{script} })"
       end
     end
   end

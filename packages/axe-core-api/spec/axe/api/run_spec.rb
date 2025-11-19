@@ -92,14 +92,13 @@ module Axe::API
         let(:context) { spy("context") }
         let(:lib) { "{}" }
 
-        let(:browser) { spy("browser") }
-        let(:driver) { spy("driver", browser:) }
-        let(:page) { spy("page", driver:) }
+        let(:page) { spy("page") }
 
         before :each do
-          allow(browser).to receive(:class).and_return(double(name: "Some::Cuprite::Class"))
           allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter"})
+
           subject.instance_variable_set :@context, context
+          subject.instance_variable_set :@is_cuprite, true
         end
 
         it "should throw errorMessage if top level axe.runPartial errors" do
@@ -137,6 +136,7 @@ module Axe::API
         before :each do
           allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter"})
           subject.instance_variable_set :@context, context
+          subject.instance_variable_set :@is_cuprite, false
         end
 
         it "should throw errorMessage if top level axe.runPartial errors" do
