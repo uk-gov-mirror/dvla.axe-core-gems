@@ -3,6 +3,12 @@ require "securerandom"
 require "timeout"
 require_relative "./exec_eval_script_adapter"
 
+def get_selenium(page)
+  page = page.driver if page.respond_to?("driver")
+  page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(Symbol)
+  page
+end
+
 module WebDriverScriptAdapter
   class << self
     attr_accessor :async_results_identifier,
@@ -86,11 +92,17 @@ module WebDriverScriptAdapter
     end
 
     def execute_async_script_fixed(script, *args)
-      if __getobj__.respond_to?(:execute_async_script)
-        __getobj__.execute_async_script(script, *args)
-      else
-        __getobj__.evaluate_async_script(script, *args)
-      end
+      page = __getobj__
+      page = page.driver if page.respond_to?("driver")
+      page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
+
+      is_cuprite?(page) ? page.evaluate_async(script, 1, *args) : page.execute_async_script(script, *args)
+    end
+
+    private
+
+    def is_cuprite?(page)
+      page.class.name.include?("Cuprite")
     end
   end
 

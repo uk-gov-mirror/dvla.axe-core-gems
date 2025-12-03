@@ -70,5 +70,34 @@ module WebDriverScriptAdapter
         expect { subject.execute_async_script :bar }.to raise_error Timeout::Error
       end
     end
+
+    describe '#execute_async_script_fixed' do
+      context 'Cuprite' do
+        let(:browser) { spy("browser") }
+        let(:driver) { spy("driver", browser:) }
+
+        before do
+          allow(browser).to receive(:class).and_return(double(name: "Some::Cuprite::Class"))
+          allow(browser).to receive(:evaluate_async).and_return(:foo)
+        end
+
+        it 'passes a 1 second timeout to evaluate_async' do
+          subject.execute_async_script_fixed :bar
+          expect(browser).to have_received(:evaluate_async).with(:bar, 1)
+        end
+
+        it 'should call execute_async_script on the underlying browser' do
+          subject.execute_async_script_fixed :bar, 1, 2
+          expect(browser).to have_received(:evaluate_async).with(:bar, 1, 1, 2)
+        end
+      end
+
+      context 'not Cuprite' do
+        it 'should call execute_async_script on the underlying driver' do
+          subject.execute_async_script_fixed :foo, 1, 2
+          expect(driver).to have_received(:execute_async_script).with(:foo, 1, 2)
+        end
+      end
+    end
   end
 end

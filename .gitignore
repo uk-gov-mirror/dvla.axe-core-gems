@@ -3,6 +3,7 @@
 .bundle
 .config
 .yardoc
+.idea/
 InstalledFiles
 _yardoc
 coverage
@@ -16,4 +17,5 @@ rdoc
 *.log
 .ruby-version
 bin/
-.idea/
+tmp/
+node_modules/

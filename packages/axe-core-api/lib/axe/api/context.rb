@@ -19,6 +19,7 @@ module Axe
       def to_h
         to_hash
       end
+
       def to_hash
         return { exclude: @exclusion } if @inclusion.empty?
         h = {}

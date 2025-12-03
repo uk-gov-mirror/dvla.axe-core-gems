@@ -60,4 +60,37 @@ module WebDriverScriptAdapter
       end
     end
   end
+
+  describe ExecEvalScriptAdapter2 do
+    subject { described_class.new driver }
+    let(:driver) { spy("driver", execute_script: :bar) }
+
+    describe "#execute_script_fixed" do
+      context "not Cuprite" do
+        it "should call execute_script on the underlying driver" do
+          subject.execute_script_fixed :foo, 1, 2
+          expect(driver).to have_received(:execute_script).with(:foo, 1, 2)
+        end
+      end
+
+      context "Cuprite" do
+        let(:browser) { spy("browser") }
+        let(:driver) { spy("driver", browser:) }
+
+        before do
+          allow(browser).to receive(:class).and_return(double(name: "Some::Cuprite::Class"))
+          allow(browser).to receive(:evaluate_func).and_return(:baz)
+        end
+
+        it "should call evaluate_func on the underlying browser" do
+          subject.execute_script_fixed :foo, 1, 2
+          expect(browser).to have_received(:evaluate_func).with("(function(arg_0, arg_1) { foo })", 1, 2)
+        end
+
+        it "should return the value from evaluate_func" do
+          expect(subject.execute_script_fixed :foo, 1, 2).to eq :baz
+        end
+      end
+    end
+  end
 end

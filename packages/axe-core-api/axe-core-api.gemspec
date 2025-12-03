@@ -24,13 +24,14 @@ Gem::Specification.new do |spec|
   ]
 
   spec.add_dependency "dumb_delegator"
-  # used by virtus; including it to make sure we install the gem and do not
-  # rely on the standard library version, which will be removed in 3.5.0
+  # ostruct and bigdecimal are no longer part of Ruby stdlib (from 3.5) which are used by virtus; including them to ensure compatibility
   spec.add_dependency "ostruct"
+  spec.add_dependency "bigdecimal"
   spec.add_dependency "virtus"
 
   spec.add_development_dependency "bundler", "~> 2.1"
   spec.add_development_dependency "capybara"
+  spec.add_development_dependency "cuprite"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "rspec-its"

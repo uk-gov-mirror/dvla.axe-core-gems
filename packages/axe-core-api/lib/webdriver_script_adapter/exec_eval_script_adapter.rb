@@ -23,13 +23,30 @@ module WebDriverScriptAdapter
     end
 
     def execute_script_fixed(script, *args)
-      __getobj__.execute_script(script, *args)
+      page = __getobj__
+      page.execute_script(script, *args)
     end
   end
 
   class ExecEvalScriptAdapter2 < ::DumbDelegator
     def execute_script_fixed(script, *args)
-      __getobj__.execute_script(script, *args)
+      page = __getobj__
+      page = page.driver if page.respond_to?("driver")
+      page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
+
+      is_cuprite?(page) ? page.evaluate_func(wrap(script, args), *args) : page.execute_script(script, *args)
+    end
+
+    private
+
+    def wrap(script, args)
+      args = args.each_with_index.map { |_arg, index| "arg_#{index}" }.join(", ")
+
+      "(function(#{args}) { #{script} })"
+    end
+
+    def is_cuprite?(page)
+      page.class.name.include?("Cuprite")
     end
   end
 
