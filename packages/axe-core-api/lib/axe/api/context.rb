@@ -22,6 +22,7 @@ module Axe
 
       def to_hash
         return { exclude: @exclusion } if @inclusion.empty?
+
         h = {}
         h["include"] = @inclusion unless @inclusion.empty?
         h["exclude"] = @exclusion unless @exclusion.empty?

@@ -90,7 +90,6 @@ module WebDriverScriptAdapter
       end
     end
 
-
     # Selenium Webdriver < 2.43 doesnt support moving back to the parent
     class ParentlessFrameAdapter < ::DumbDelegator
       # storage of frame stack (for reverting to parent) taken from Capybara

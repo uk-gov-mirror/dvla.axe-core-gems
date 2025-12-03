@@ -40,6 +40,7 @@ module Axe
 
     def load_axe_core(source)
       return if already_loaded?
+
       loader = Common::Loader.new(@page, self)
       loader.load_top_level source
       return if use_run_partial

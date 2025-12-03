@@ -53,7 +53,7 @@ module Axe
             while not partial_res_str.empty? do
               chunk_size = size_limit
               chunk_size = partial_res_str.length if chunk_size > partial_res_str.length
-              chunk = partial_res_str[0..chunk_size-1]
+              chunk = partial_res_str[0..chunk_size - 1]
               partial_res_str = partial_res_str[chunk_size..-1]
               store_chunk page, chunk
             end
@@ -283,8 +283,8 @@ module Axe
              })));
         JS
 
-
-        return JSON.parse(page.execute_async_script_fixed(script, context, @options)) if page.respond_to?(:execute_async_script_fixed)
+        return JSON.parse(page.execute_async_script_fixed(script, context,
+                                                          @options)) if page.respond_to?(:execute_async_script_fixed)
         return JSON.parse(page.evaluate_async(script, 1, context, @options)) if page.respond_to?(:evaluate_async)
 
         raise StandardError.new "The page object does not support async script execution"

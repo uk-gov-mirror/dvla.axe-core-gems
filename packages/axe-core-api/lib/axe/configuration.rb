@@ -16,6 +16,7 @@ module Axe
                   :jslib_path,
                   :skip_iframes,
                   :legacy_mode
+
     def_delegators ::WebDriverScriptAdapter,
                    :async_results_identifier,
                    :async_results_identifier=,

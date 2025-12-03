@@ -95,7 +95,7 @@ module Axe::API
         let(:page) { spy("page") }
 
         before :each do
-          allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter"})
+          allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter" })
 
           subject.instance_variable_set :@context, context
           subject.instance_variable_set :@is_cuprite, true
@@ -106,14 +106,14 @@ module Axe::API
 
           expect {
             subject.send :run_partial_recursive, page, context, lib, true
-          }.to  raise_error /some error/
+          }.to raise_error /some error/
         end
 
         it "should throw an error if top level axe.runPartial returns null" do
           allow(page).to receive(:execute_async_script_fixed).and_return(nil)
           expect {
             subject.send :run_partial_recursive, page, context, lib, true
-          }.to  raise_error /returned null/
+          }.to raise_error /returned null/
         end
 
         it "should return array of nil if not top level and axe.runPartial errors" do
@@ -134,7 +134,7 @@ module Axe::API
         let(:lib) { "{}" }
 
         before :each do
-          allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter"})
+          allow(subject).to receive(:get_frame_context_script).and_return({ "key" => "doesn't matter" })
           subject.instance_variable_set :@context, context
           subject.instance_variable_set :@is_cuprite, false
         end
@@ -144,14 +144,14 @@ module Axe::API
 
           expect {
             subject.send :run_partial_recursive, page, context, lib, true
-          }.to  raise_error /some error/
+          }.to raise_error /some error/
         end
 
         it "should throw an error if top level axe.runPartial returns null" do
           page = spy("page", execute_async_script_fixed: nil)
           expect {
             subject.send :run_partial_recursive, page, context, lib, true
-          }.to  raise_error /returned null/
+          }.to raise_error /returned null/
         end
 
         it "should return array of nil if not top level and axe.runPartial errors" do

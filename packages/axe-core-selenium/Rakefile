@@ -22,7 +22,7 @@ end
 # format code
 desc "Format code using rubocop"
 task :format => [] do
-  sh "bundle exec rubocop --config rubocop.yml --auto-correct --fix-layout"
+  sh "bundle exec rubocop --config rubocop.yml --autocorrect --fix-layout"
 end
 
 #  publish

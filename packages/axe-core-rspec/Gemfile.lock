@@ -1,7 +1,8 @@
 PATH
   remote: ..
   specs:
-    axe-core-api (4.10.1)
+    axe-core-api (4.12.0)
+      bigdecimal
       dumb_delegator
       ostruct
       virtus
@@ -9,8 +10,8 @@ PATH
 PATH
   remote: .
   specs:
-    axe-core-rspec (4.10.1)
-      axe-core-api (= 4.10.1)
+    axe-core-rspec (4.12.0)
+      axe-core-api (= 4.12.0)
       dumb_delegator
       ostruct
       virtus
@@ -23,6 +24,7 @@ GEM
       descendants_tracker (~> 0.0.4)
       ice_nine (~> 0.11.0)
       thread_safe (~> 0.3, >= 0.3.1)
+    bigdecimal (3.3.1)
     coercible (1.0.0)
       descendants_tracker (~> 0.0.1)
     descendants_tracker (0.0.4)
@@ -82,6 +84,7 @@ GEM
 PLATFORMS
   arm64-darwin-22
   arm64-darwin-23
+  arm64-darwin-25
 
 DEPENDENCIES
   axe-core-api!

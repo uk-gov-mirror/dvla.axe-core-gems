@@ -43,7 +43,6 @@ module Axe
         @timestamp = ts
       end
 
-
       private
 
       def violation_count_message

@@ -1,5 +1,5 @@
 # Typical example using standard RSpec dsl
-require "json" #TODO: REMOVE
+require "json" # TODO: REMOVE
 require "selenium-webdriver"
 require "axe/core"
 require "axe/api"
@@ -58,7 +58,7 @@ def recursive_compact(thing)
       a << v unless [nil, [], {}].include?(v)
     end
   elsif thing.is_a?(Hash)
-    thing.each_with_object({}) do |(k,v), h|
+    thing.each_with_object({}) do |(k, v), h|
       v = recursive_compact(v)
       h[k] = v unless ([nil, [], {}].include?(v) or k == :html)
     end
@@ -66,7 +66,6 @@ def recursive_compact(thing)
     thing
   end
 end
-
 
 def get_check_by_id(check_list, id)
   return check_list.find { |check| check.id == id }
@@ -314,7 +313,7 @@ describe "axe.finishRun" do
       original_method.call(*args, &block)
       original_method.call(*args, &block)
     end
-    
+
     $driver.get fixture "/index.html"
     with_js($axe_post_43x) {
       expect { run_axe }.to raise_error /Unable to determine window handle/
@@ -324,7 +323,6 @@ describe "axe.finishRun" do
   it "works with large results", :nt => true do
     $driver.get fixture "/index.html"
     res = with_js($axe_post_43x + $large_partial_js) { run_axe }
-
 
     expect(res.results.passes.length).to eq 1
     expect(res.results.passes[0].id).to eq :'duplicate-id'
@@ -337,7 +335,7 @@ describe "does not throw when given" do
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     driver = Selenium::WebDriver.for :chrome, options: options
-    expect do 
+    expect do
       driver.get fixture "/index.html"
       driver.get "about:blank"
     end.not_to raise_error
@@ -347,7 +345,7 @@ describe "does not throw when given" do
     options = Selenium::WebDriver::Firefox::Options.new
     options.add_argument('--headless')
     driver = Selenium::WebDriver.for :firefox, options: options
-    expect do 
+    expect do
       driver.get fixture "/index.html"
       driver.get "about:blank"
     end.not_to raise_error
@@ -356,7 +354,7 @@ describe "does not throw when given" do
   if Object::RUBY_PLATFORM =~ /darwin/i
     it "safaridriver" do
       driver = Selenium::WebDriver.for :safari
-      expect do 
+      expect do
         driver.get fixture "/index.html"
         driver.get "about:blank"
       end.not_to raise_error
@@ -402,13 +400,13 @@ describe "4.6 selectors" do
     $driver.get fixture "/context-include-exclude.html"
 
     run = Run.new
-        .within({ "fromFrames" => ["#ifr-inc-excl", "html"] })
-        .excluding({ "fromFrames" => ["#ifr-inc-excl", "#foo-bar"] })
-        .within({ "fromFrames" => ["#ifr-inc-excl", "#foo-baz", "html"] })
-        .excluding({ "fromFrames" => ["#ifr-inc-excl", "#foo-baz", "input"] })
+             .within({ "fromFrames" => ["#ifr-inc-excl", "html"] })
+             .excluding({ "fromFrames" => ["#ifr-inc-excl", "#foo-bar"] })
+             .within({ "fromFrames" => ["#ifr-inc-excl", "#foo-baz", "html"] })
+             .excluding({ "fromFrames" => ["#ifr-inc-excl", "#foo-baz", "input"] })
     res = run_axe run
 
-    label_result = res.results.violations.find {|rule| rule.id == :label}
+    label_result = res.results.violations.find { |rule| rule.id == :label }
 
     targets = flat_targets res.results.passes
     expect(targets).not_to include "#foo-bar"
@@ -420,8 +418,8 @@ describe "4.6 selectors" do
     $driver.get fixture "/shadow-dom.html"
 
     run = Run.new
-      .within([["#shadow-root-1", "#shadow-button-1"]])
-      .within([["#shadow-root-2", "#shadow-button-2"]])
+             .within([["#shadow-root-1", "#shadow-button-1"]])
+             .within([["#shadow-root-2", "#shadow-button-2"]])
     res = run_axe run
 
     targets = flat_targets res.results.passes
@@ -434,8 +432,8 @@ describe "4.6 selectors" do
     $driver.get fixture "/shadow-dom.html"
 
     run = Run.new
-      .excluding([["#shadow-root-1", "#shadow-button-1"]])
-      .excluding([["#shadow-root-2", "#shadow-button-2"]])
+             .excluding([["#shadow-root-1", "#shadow-button-1"]])
+             .excluding([["#shadow-root-2", "#shadow-button-2"]])
     res = run_axe run
 
     targets = flat_targets res.results.passes
@@ -448,8 +446,8 @@ describe "4.6 selectors" do
     $driver.get fixture "/shadow-dom.html"
 
     run = Run.new
-      .within({ "fromShadowDom" => ["#shadow-root-1", "#shadow-button-1"] })
-      .excluding({ "fromShadowDom" => ["#shadow-root-2", "#shadow-button-2"] })
+             .within({ "fromShadowDom" => ["#shadow-root-1", "#shadow-button-1"] })
+             .excluding({ "fromShadowDom" => ["#shadow-root-2", "#shadow-button-2"] })
     res = run_axe run
 
     targets = flat_targets res.results.passes
@@ -461,14 +459,13 @@ describe "4.6 selectors" do
     $driver.get fixture "/shadow-frames.html"
 
     run = Run.new
-      .with_options({ "runOnly" => "label"})
-      .excluding({
-            "fromFrames" => [{
-                "fromShadowDom" => ["#shadow-root", "#shadow-frame"]
-              },
-              "input"
-            ]
-          })
+             .with_options({ "runOnly" => "label" })
+             .excluding({
+                          "fromFrames" => [{
+                            "fromShadowDom" => ["#shadow-root", "#shadow-frame"]
+                          },
+                                           "input"]
+                        })
     res = run_axe run
 
     expect(res.results.violations[0].id).to eq :label
