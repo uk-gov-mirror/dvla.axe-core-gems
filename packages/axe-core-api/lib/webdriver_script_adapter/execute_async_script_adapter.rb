@@ -96,7 +96,7 @@ module WebDriverScriptAdapter
       page = page.driver if page.respond_to?("driver")
       page = page.browser if page.respond_to?("browser") and not page.browser.is_a?(::Symbol)
 
-      is_cuprite?(page) ? page.evaluate_async(script, 1, *args) : page.execute_async_script(script, *args)
+      is_cuprite?(page) ? page.evaluate_async(script, 2, *args) : page.execute_async_script(script, *args)
     end
 
     private

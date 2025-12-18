@@ -285,7 +285,7 @@ module Axe
 
 
         return JSON.parse(page.execute_async_script_fixed(script, context, @options)) if page.respond_to?(:execute_async_script_fixed)
-        return JSON.parse(page.evaluate_async(script, 1, context, @options)) if page.respond_to?(:evaluate_async)
+        return JSON.parse(page.evaluate_async(script, 2, context, @options)) if page.respond_to?(:evaluate_async)
 
         raise StandardError.new "The page object does not support async script execution"
       rescue JSON::ParserError, TypeError
