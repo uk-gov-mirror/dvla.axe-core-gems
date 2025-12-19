@@ -32,6 +32,9 @@ module Axe
       end
 
       def analyze_post_43x(page, lib)
+        puts "Entering analyze_post_43x"
+
+        start = Time.now
         user_page_load = nil
 
         unless is_cuprite?(page)
@@ -68,6 +71,8 @@ module Axe
         ensure
           (get_driver page).manage.timeouts.page_load = user_page_load unless user_page_load.nil?
         end
+
+        puts "Exiting analyze_post_43x after #{Time.now - start} seconds"
 
         Audit.new to_js, Results.new(results)
       end
@@ -106,6 +111,9 @@ module Axe
       end
 
       def within_about_blank_context(page)
+        puts "Entering within_about_blank_context"
+        start = Time.now
+
         driver = get_driver page
         is_cuprite = is_cuprite?(page)
 
@@ -125,7 +133,9 @@ module Axe
         raise StandardError.new("Unable to determine window handle") if new_handle.nil?
 
         if is_cuprite
+          start = Time.now
           driver.switch_to_window new_handle
+          puts "switch_to_window took #{Time.now - start} seconds"
 
           ret = yield page
 
@@ -142,6 +152,8 @@ module Axe
           driver.switch_to.window @original_window
         end
 
+        puts "Exiting within_about_blank_context after #{Time.now - start} seconds"
+
         ret
       end
 
@@ -156,6 +168,9 @@ module Axe
       end
 
       def run_partial_recursive(page, context, lib, top_level = false, frame_stack = [])
+        puts "Entering run_partial_recursive (top_level=#{top_level}, frame_stack size=#{frame_stack.size})"
+        start = Time.now
+
         begin
           current_window_handle = window_handle page
           if not top_level
@@ -215,21 +230,29 @@ module Axe
           switch_to_parent_frame(page) if not top_level and not is_cuprite?(page)
         end
 
+        puts "Exiting run_partial_recursive after #{Time.now - start} seconds"
+
         return results
       end
 
       def store_chunk(page, chunk)
+        start = Time.now
         script = <<-JS
           const chunk = arguments[0];
           window.partialResults ??= '';
           window.partialResults += chunk;
         JS
 
-        page.execute_script_fixed(script, chunk)
+        result = page.execute_script_fixed(script, chunk)
+        puts "store_chunk took #{Time.now - start} seconds"
+        result
       end
 
       def axe_finish_run(page)
-        is_cuprite?(page) ? axe_finish_run_cuprite(page) : axe_finish_run_selenium(page)
+        start = Time.now
+        result = is_cuprite?(page) ? axe_finish_run_cuprite(page) : axe_finish_run_selenium(page)
+        puts "axe_finish_run took #{Time.now - start} seconds"
+        result
       end
 
       def axe_finish_run_cuprite(page)
@@ -254,16 +277,22 @@ module Axe
       end
 
       def axe_shadow_select(page, frame_selector)
+        start = Time.now
         script = <<-JS
           const frameSelector = arguments[0];
           return axe.utils.shadowSelect(frameSelector);
         JS
 
-        page.execute_script_fixed(script, frame_selector)
+        result = page.execute_script_fixed(script, frame_selector)
+        puts "axe_shadow_select took #{Time.now - start} seconds"
+        result
       end
 
       def axe_run_partial(page, context)
-        is_cuprite?(page) ? axe_run_partial_cuprite(page, context) : axe_run_partial_selenium(page, context)
+        start = Time.now
+        result = is_cuprite?(page) ? axe_run_partial_cuprite(page, context) : axe_run_partial_selenium(page, context)
+        puts "axe_run_partial took #{Time.now - start} seconds"
+        result
       end
 
       def axe_run_partial_cuprite(page, context)
@@ -315,6 +344,7 @@ module Axe
       end
 
       def get_frame_context_script(page)
+        start = Time.now
         script = <<-JS
           const context = arguments[0];
           try {
@@ -330,8 +360,12 @@ module Axe
           }
         JS
 
-        return page.execute_script_fixed(script, @context) if page.respond_to?(:execute_script_fixed)
-        return page.evaluate_func(wrap(script, @context), @context) if page.respond_to?(:evaluate_func)
+        result = page.execute_script_fixed(script, @context) if page.respond_to?(:execute_script_fixed)
+        result = page.evaluate_func(wrap(script, @context), @context) if page.respond_to?(:evaluate_func)
+
+        puts "get_frame_context_script took #{Time.now - start} seconds"
+
+        return result unless result.nil?
 
         raise StandardError.new "The page object does not support script execution"
       end
