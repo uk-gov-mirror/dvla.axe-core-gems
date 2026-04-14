@@ -2,6 +2,9 @@ source "https://rubygems.org"
 
 group :test, :development do
   gem "rubocop"
+  gem "cgi"
+  gem "base64"
+  gem "logger"
 end
 
 gemspec
